@@ -2,113 +2,107 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_WORD_LENGTH 100
-
-typedef struct WordFrequency {
-    char word[MAX_WORD_LENGTH];
+typedef struct {
+    char* word;
     int frequency;
 } WordFrequency;
 
-int isWordSeparator(char c) {
-    return (c == ' ' || c == '\n' || c == '\t');
-}
+void countWords(char* text, WordFrequency** frequencies, int* count) {
+    const char delimiters[] = " \t\n.,;:!?\")(-";
+    char* word = strtok(text, delimiters);
 
-void processTextFile(const char* inputFile, const char* outputFile) {
-    FILE* input = fopen(inputFile, "r");
-    if (input == NULL) {
-        printf("Failed to open input file.\n");
-        return;
-    }
-
-    // Count characters and words
-    int characterCount = 0;
-    int wordCount = 0;
-
-    char ch;
-    while ((ch = fgetc(input)) != EOF) {
-        characterCount++;
-
-        if (isWordSeparator(ch)) {
-            wordCount++;
-        }
-    }
-
-    // Rewind the file pointer to read words
-    rewind(input);
-
-    // Allocate memory for storing words and their frequencies
-    WordFrequency* wordFrequencies = malloc(wordCount * sizeof(WordFrequency));
-    int numWords = 0;
-
-    // Process each word in the input file
-    char word[MAX_WORD_LENGTH];
-    while (fscanf(input, "%s", word) == 1) {
-        // Check if the word is already recorded
-        int i;
-        for (i = 0; i < numWords; i++) {
-            if (strcmp(wordFrequencies[i].word, word) == 0) {
-                wordFrequencies[i].frequency++;
+    while (word != NULL) {
+        // Ищем слово в массиве frequencies
+        int found = 0;
+        for (int i = 0; i < *count; i++) {
+            if (strcmp((*frequencies)[i].word, word) == 0) {
+                (*frequencies)[i].frequency++;
+                found = 1;
                 break;
             }
         }
 
-        // If the word is not recorded, add it to the array
-        if (i == numWords) {
-            strncpy(wordFrequencies[numWords].word, word, MAX_WORD_LENGTH);
-            wordFrequencies[numWords].frequency = 1;
-            numWords++;
+        // Если слово не найдено, добавляем его в массив frequencies
+        if (!found) {
+            (*count)++;
+            *frequencies = realloc(*frequencies, (*count) * sizeof(WordFrequency));
+            (*frequencies)[(*count) - 1].word = strdup(word);
+            (*frequencies)[(*count) - 1].frequency = 1;
         }
+
+        word = strtok(NULL, delimiters);
     }
+}
 
-    // Close the input file
-    fclose(input);
+int compareFrequencies(const void* a, const void* b) {
+    const WordFrequency* freqA = (const WordFrequency*)a;
+    const WordFrequency* freqB = (const WordFrequency*)b;
 
-    // Open the output file
-    FILE* output = fopen(outputFile, "w");
-    if (output == NULL) {
-        printf("Failed to open output file.\n");
-        free(wordFrequencies);
-        return;
-    }
-
-    // Sort the word frequencies in descending order
-    for (int i = 0; i < numWords - 1; i++) {
-        for (int j = 0; j < numWords - i - 1; j++) {
-            if (wordFrequencies[j].frequency < wordFrequencies[j + 1].frequency) {
-                WordFrequency temp = wordFrequencies[j];
-                wordFrequencies[j] = wordFrequencies[j + 1];
-                wordFrequencies[j + 1] = temp;
-            }
-        }
-    }
-
-    // Write the word frequencies to the output file
-    for (int i = 0; i < numWords; i++) {
-        if (wordFrequencies[i].frequency > 1) {
-            fprintf(output, "%s - %d\n", wordFrequencies[i].word, wordFrequencies[i].frequency);
-        }
-    }
-
-    // Close the output file
-    fclose(output);
-
-    // Free the memory
-    free(wordFrequencies);
-
-    printf("Character count: %d\n", characterCount);
-    printf("Word count: %d\n", wordCount);
+    return freqB->frequency - freqA->frequency;
 }
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        printf("Usage: %s input_file output_file\n", argv[0]);
+        printf("Usage: calcFrequency <input_file> <output_file>\n");
         return 1;
     }
 
-    const char* inputFile = argv[1];
-    const char* outputFile = argv[2];
+    // Открываем файлы для чтения и записи
+    FILE* input = fopen(argv[1], "r");
+    if (input == NULL) {
+        printf("Failed to open input file.\n");
+        return 1;
+    }
 
-    processTextFile(inputFile, outputFile);
+    FILE* output = fopen(argv[2], "w");
+    if (output == NULL) {
+        printf("Failed to open output file.\n");
+        fclose(input);
+        return 1;
+    }
+
+    // Получаем размер файла
+    fseek(input, 0, SEEK_END);
+    long size = ftell(input);
+    fseek(input, 0, SEEK_SET);
+
+    // Выделяем память для текста
+    char* text = malloc(size + 1);
+    if (text == NULL) {
+        printf("Memory allocation failed.\n");
+        fclose(input);
+        fclose(output);
+        return 1;
+    }
+
+    // Читаем текст из файла
+    fread(text, 1, size, input);
+    text[size] = '\0';
+
+    // Считаем количество слов и их частоту
+    WordFrequency* frequencies = NULL;
+    int count = 0;
+    countWords(text, &frequencies, &count);
+
+    // Сортируем слова по частоте встречаемости (в порядке убывания)
+    qsort(frequencies, count, sizeof(WordFrequency), compareFrequencies);
+
+    // Записываем результаты в файл
+    for (int i = 0; i < count; i++) {
+        if (frequencies[i].frequency > 1) {
+            fprintf(output, "%s - %d\n", frequencies[i].word, frequencies[i].frequency);
+        }
+    }
+
+    // Освобождаем память и закрываем файлы
+    fclose(input);
+    fclose(output);
+    free(text);
+
+    for (int i = 0; i < count; i++) {
+        free(frequencies[i].word);
+    }
+    free(frequencies);
 
     return 0;
 }
