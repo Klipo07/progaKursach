@@ -3,8 +3,8 @@
 #include <string.h>
 #include <strings.h>
 #include <stdbool.h>
+#include <ctype.h>
 
-#include "ignorecase.h"
 
 typedef struct {
     char* word;

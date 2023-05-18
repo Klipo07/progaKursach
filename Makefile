@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 
 TARGET = calcFrequency
-SRC = main.c ignorecase.c
+SRC = main.c
 OBJ = $(SRC:.c=.o)
 
 INPUT_FILE = text1.txt
