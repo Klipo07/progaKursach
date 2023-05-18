@@ -2,8 +2,11 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 
 TARGET = calcFrequency
-SRC = main.c
+SRC = main.c ignorecase.c
 OBJ = $(SRC:.c=.o)
+
+INPUT_FILE = text1.txt
+OUTPUT_FILE = text2.txt
 
 .PHONY: all clean
 
@@ -19,4 +22,4 @@ clean:
 	rm -f $(TARGET) $(OBJ)
 
 run: $(TARGET)
-	./$(TARGET) $(ARGS)
+	@./$(TARGET) $(INPUT_FILE) $(OUTPUT_FILE)
