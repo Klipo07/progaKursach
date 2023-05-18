@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <strings.h>
 #include <stdbool.h>
 
 #include "ignorecase.h"
@@ -16,17 +16,10 @@ void countWords(char* text, WordFrequency** frequencies, int* count) {
     char* word = strtok(text, delimiters);
 
     while (word != NULL) {
-        char* lowercaseWord = strdup(word);
-
-        // Преобразуем слово к нижнему регистру
-        for (int i = 0; lowercaseWord[i] != '\0'; i++) {
-            lowercaseWord[i] = tolower(lowercaseWord[i]);
-        }
-
         // Ищем слово в массиве frequencies
         int found = 0;
         for (int i = 0; i < *count; i++) {
-            if (strcasecmp_custom((*frequencies)[i].word, lowercaseWord) == 0) {
+            if (strcasecmp((*frequencies)[i].word, word) == 0) {
                 (*frequencies)[i].frequency++;
                 found = 1;
                 break;
@@ -35,13 +28,16 @@ void countWords(char* text, WordFrequency** frequencies, int* count) {
 
         // Если слово не найдено, добавляем его в массив frequencies
         if (!found) {
+            // Преобразуем слово к нижнему регистру перед добавлением
+            for (int i = 0; word[i] != '\0'; i++) {
+                word[i] = tolower(word[i]);
+            }
             (*count)++;
             *frequencies = realloc(*frequencies, (*count) * sizeof(WordFrequency));
-            (*frequencies)[(*count) - 1].word = strdup(lowercaseWord);
+            (*frequencies)[(*count) - 1].word = strdup(word);
             (*frequencies)[(*count) - 1].frequency = 1;
         }
 
-        free(lowercaseWord);
         word = strtok(NULL, delimiters);
     }
 }
