@@ -11,15 +11,25 @@ typedef struct {
     int frequency;
 } WordFrequency;
 
+void convertToLowercase(char* text) {
+    for (int i = 0; text[i] != '\0'; i++) {
+        text[i] = tolower(text[i]);
+    }
+}
+
 void countWords(char* text, WordFrequency** frequencies, int* count) {
     const char delimiters[] = " \t\n.,;:!?\"+)(-";
     char* word = strtok(text, delimiters);
 
     while (word != NULL) {
+        // Преобразуем слово к нижнему регистру перед поиском
+        char* lowerWord = strdup(word);
+        convertToLowercase(lowerWord);
+
         // Ищем слово в массиве frequencies
         int found = 0;
         for (int i = 0; i < *count; i++) {
-            if (strcasecmp((*frequencies)[i].word, word) == 0) {
+            if (strcasecmp((*frequencies)[i].word, lowerWord) == 0) {
                 (*frequencies)[i].frequency++;
                 found = 1;
                 break;
@@ -28,16 +38,13 @@ void countWords(char* text, WordFrequency** frequencies, int* count) {
 
         // Если слово не найдено, добавляем его в массив frequencies
         if (!found) {
-            // Преобразуем слово к нижнему регистру перед добавлением
-            for (int i = 0; word[i] != '\0'; i++) {
-                word[i] = tolower(word[i]);
-            }
             (*count)++;
             *frequencies = realloc(*frequencies, (*count) * sizeof(WordFrequency));
-            (*frequencies)[(*count) - 1].word = strdup(word);
+            (*frequencies)[(*count) - 1].word = strdup(lowerWord);
             (*frequencies)[(*count) - 1].frequency = 1;
         }
 
+        free(lowerWord);
         word = strtok(NULL, delimiters);
     }
 }
@@ -86,6 +93,9 @@ int main(int argc, char* argv[]) {
     // Читаем текст из файла
     fread(text, 1, size, input);
     text[size] = '\0';
+
+    // Преобразуем все слова к нижнему регистру
+    convertToLowercase(text);
 
     // Считаем количество слов и их частоту
     WordFrequency* frequencies = NULL;
