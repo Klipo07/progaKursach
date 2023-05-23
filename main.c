@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <stdbool.h>
 #include <ctype.h>
 
 
@@ -22,18 +20,25 @@ void countWords(char* text, WordFrequency** frequencies, int* count) {
     char* word = strtok(text, delimiters);
 
     while (word != NULL) {
-        // Преобразуем слово к нижнему регистру перед поиском
+        // Преобразуем слово к нижнему регистру перед поиском и сохранением
         char* lowerWord = strdup(word);
         convertToLowercase(lowerWord);
 
         // Ищем слово в массиве frequencies
         int found = 0;
         for (int i = 0; i < *count; i++) {
-            if (strcasecmp((*frequencies)[i].word, lowerWord) == 0) {
+            // Преобразуем слово из массива к нижнему регистру перед сравнением
+            char* freqWord = strdup((*frequencies)[i].word);
+            convertToLowercase(freqWord);
+
+            if (strcmp(freqWord, lowerWord) == 0) {
                 (*frequencies)[i].frequency++;
                 found = 1;
+                free(freqWord);
                 break;
             }
+
+            free(freqWord);
         }
 
         // Если слово не найдено, добавляем его в массив frequencies
